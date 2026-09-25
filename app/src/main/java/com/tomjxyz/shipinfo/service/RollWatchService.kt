@@ -29,7 +29,7 @@ import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 
-enum class RollWatchPhase { IDLE, TARING, WATCHING }
+enum class RollWatchPhase { IDLE, WATCHING }
 
 data class RollWatchState(
     val phase: RollWatchPhase = RollWatchPhase.IDLE,
@@ -61,7 +61,6 @@ class RollWatchService : LifecycleService() {
     companion object {
         private const val ACTION_START = "com.tomjxyz.shipinfo.roll.START"
         private const val ACTION_STOP = "com.tomjxyz.shipinfo.roll.STOP"
-        const val TARE_MS = 10_000L
 
         private val _state = MutableStateFlow(RollWatchState())
         val state: StateFlow<RollWatchState> = _state.asStateFlow()
@@ -112,7 +111,7 @@ class RollWatchService : LifecycleService() {
         if (job != null) return
         startForegroundCompat(
             Notifications.ID_ROLL_WATCH,
-            Notifications.ongoing(this, "Roll watch", "Keep the phone still: calibrating level…", "roll", stopIntent()),
+            Notifications.ongoing(this, "Roll watch", "Starting…", "roll", stopIntent()),
             useLocation = hasLocationPermission(),
         )
         wakeLock = partialWakeLock("rollwatch").also { it.acquire(7 * 24 * 60 * 60 * 1000L) }
@@ -127,10 +126,7 @@ class RollWatchService : LifecycleService() {
             val h = SensorHub(this@RollWatchService, this, channels, settings.orientation, gpsIntervalMs = 60_000)
             hub = h
             h.start()
-            _state.value = RollWatchState(phase = RollWatchPhase.TARING, startMs = System.currentTimeMillis())
             startUiUpdates(h)
-
-            h.tare(TARE_MS)
 
             val windowMs = settings.rollWindowMinutes * 60_000L
             val startMs = System.currentTimeMillis()

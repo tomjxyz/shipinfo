@@ -43,6 +43,7 @@ import com.tomjxyz.shipinfo.service.RollWatchService
 import com.tomjxyz.shipinfo.ui.Perms
 import com.tomjxyz.shipinfo.ui.components.ChartSeries
 import com.tomjxyz.shipinfo.ui.components.Inclinometer
+import com.tomjxyz.shipinfo.ui.components.LevelControls
 import com.tomjxyz.shipinfo.ui.components.LineChart
 import com.tomjxyz.shipinfo.ui.components.SectionCard
 import com.tomjxyz.shipinfo.ui.components.Stat
@@ -116,6 +117,7 @@ fun RollWatchScreen(onOpenSession: (Long) -> Unit, vm: RollWatchViewModel = view
                         onSelect = vm::setOrientation,
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    LevelControls(settings.orientation)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Dropdown(
                             label = "Check every",
@@ -146,8 +148,7 @@ fun RollWatchScreen(onOpenSession: (Long) -> Unit, vm: RollWatchViewModel = view
                         Switch(checked = settings.rollIncludeGps, onCheckedChange = vm::setIncludeGps)
                     }
                     Text(
-                        "How it works: after start the phone calibrates for 10 s (keep it still, ship as upright as possible). " +
-                            "It then samples motion continuously. Every ${settings.rollWindowMinutes} min it saves the peak " +
+                        "How it works: the phone samples motion continuously, relative to the level above. Every ${settings.rollWindowMinutes} min it saves the peak " +
                             "roll, pitch and sideways g-force of that period, and marks it as a new record when the roll/pitch " +
                             "angle or g-force beats the biggest so far.",
                         style = MaterialTheme.typography.bodySmall,
@@ -177,14 +178,6 @@ fun RollWatchScreen(onOpenSession: (Long) -> Unit, vm: RollWatchViewModel = view
                         )
                         TextButton(onClick = { Perms.requestIgnoreBatteryOptimizations(context) }) { Text("Allow") }
                     }
-                }
-            }
-
-            RollWatchPhase.TARING -> {
-                SectionCard(title = "Calibrating level") {
-                    Text("Keep the phone still on the table…")
-                    LinearProgressIndicator(Modifier.fillMaxWidth())
-                    TextButton(onClick = vm::stop) { Text("Cancel") }
                 }
             }
 

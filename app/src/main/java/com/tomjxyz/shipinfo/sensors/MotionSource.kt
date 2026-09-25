@@ -37,8 +37,21 @@ class MotionSource(context: Context, private val orientation: PhoneOrientation) 
     private val rotation = sensors?.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
 
     @Volatile
-    var frame: ShipFrame = LevelReference.frame(orientation)
-        private set
+    private var frameFor: LevelState? = null
+
+    @Volatile
+    private var cachedFrame: ShipFrame = LevelReference.frame(orientation)
+
+    /** Ship frame for the current level reference; follows [LevelReference] changes. */
+    val frame: ShipFrame
+        get() {
+            val s = LevelReference.state.value
+            if (s !== frameFor) {
+                cachedFrame = LevelReference.frame(orientation, s)
+                frameFor = s
+            }
+            return cachedFrame
+        }
 
     /** Magnetic declination (east positive) added to the compass to get a true heading. */
     @Volatile
@@ -125,15 +138,14 @@ class MotionSource(context: Context, private val orientation: PhoneOrientation) 
         listener = null
     }
 
-    /** Averages the gravity direction for [durationMs] and uses it as the level reference. */
-    suspend fun tare(durationMs: Long) {
+    /** Averages the gravity direction for [durationMs] and stores it as the level reference. */
+    suspend fun measureLevel(durationMs: Long): Boolean {
         val acc = TareAccumulator()
         tare = acc
         delay(durationMs)
         tare = null
-        acc.result()?.let {
-            LevelReference.up = it
-            frame = ShipFrame(it, orientation)
-        }
+        val up = acc.result() ?: return false
+        LevelReference.set(up)
+        return true
     }
 }

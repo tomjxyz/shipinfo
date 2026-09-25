@@ -9,7 +9,7 @@ as charts. Everything can be exported as CSV. It works offline and does not need
 | --- | --- |
 | **Live** | Main mode. Turn Speed / GPS / Heading / Roll on or off, pick a sample interval, then press **Start**. Gauges show the current values. Recording keeps running with the screen off, and a notification lets you stop it. |
 | **Positions** | Tap once to save a single GPS position ("pin"). You can also take pins automatically every 1–24 h, optionally lined up to a time of day (e.g. a noon position). Pins are shown as a track plot and a list with distance between pins. |
-| **Roll watch** | Leave the phone on a table, locked, for hours. It calibrates level for 10 s, then samples motion continuously. Every *N* minutes it stores the peak roll to port and starboard, pitch, sideways/vertical g-force and roll period. A check is marked as a **new record** when its roll/pitch angle or sideways g beats the session maximum. |
+| **Roll watch** | Leave the phone on a table, locked, for hours. It samples motion continuously, relative to the current level reference. Every *N* minutes it stores the peak roll to port and starboard, pitch, sideways/vertical g-force and roll period. A check is marked as a **new record** when its roll/pitch angle or sideways g beats the session maximum. |
 | **Recordings** | All live and roll-watch sessions. Open one to see stat cards, zoomable charts (speed, heading, roll & pitch, acceleration), and the GPS track. Share or save each session as CSV, or export everything as a zip. |
 
 ### Conventions
@@ -17,7 +17,10 @@ as charts. Everything can be exported as CSV. It works offline and does not need
 * Heading: *GPS course over ground* (only valid while moving) and *compass heading*, corrected to true north using
   magnetic declination. Phone compasses are often off on steel ships, so treat the compass value with care.
 * Set **Phone placement** to match how the phone lies (top of the phone pointing to the bow, stern, port or
-  starboard) so that roll and pitch are the right way round. Use **Set level** to zero out a tilted table.
+  starboard) so that roll and pitch are the right way round.
+* **Level:** by default the table is assumed to be level. **Set level** samples gravity for 1 s and uses it as the new
+  zero, so press it when the ship is momentarily upright. **Reset to default** goes back to assuming a level table. The
+  level is shared by Live and Roll watch, and is remembered between app restarts.
 * CSV timestamps are ISO-8601 UTC. Speeds are in knots and distances in nautical miles.
 
 ## Install

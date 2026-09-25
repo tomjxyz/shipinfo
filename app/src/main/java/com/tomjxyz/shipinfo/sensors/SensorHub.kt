@@ -108,6 +108,4 @@ class SensorHub(
         locationJob = null
         motion.stop()
     }
-
-    suspend fun tare(durationMs: Long) = motion.tare(durationMs)
 }

@@ -34,7 +34,6 @@ data class LiveRecordingState(
     val sampleCount: Int = 0,
     val channels: Set<Channel> = emptySet(),
     val readings: LiveReadings = LiveReadings(),
-    val taring: Boolean = false,
     /** Recent samples for the live mini charts. */
     val history: List<SampleEntity> = emptyList(),
     val maxRollStbdDeg: Double = 0.0,
@@ -46,9 +45,7 @@ class RecordingService : LifecycleService() {
     companion object {
         private const val ACTION_START = "com.tomjxyz.shipinfo.record.START"
         private const val ACTION_STOP = "com.tomjxyz.shipinfo.record.STOP"
-        private const val ACTION_TARE = "com.tomjxyz.shipinfo.record.TARE"
         private const val HISTORY_SIZE = 300
-        const val TARE_MS = 5_000L
 
         private val _state = MutableStateFlow(LiveRecordingState())
         val state: StateFlow<LiveRecordingState> = _state.asStateFlow()
@@ -59,10 +56,6 @@ class RecordingService : LifecycleService() {
 
         fun stop(context: Context) {
             context.startService(Intent(context, RecordingService::class.java).setAction(ACTION_STOP))
-        }
-
-        fun tare(context: Context) {
-            context.startService(Intent(context, RecordingService::class.java).setAction(ACTION_TARE))
         }
     }
 
@@ -90,14 +83,6 @@ class RecordingService : LifecycleService() {
         when (intent?.action) {
             ACTION_START -> startRecording()
             ACTION_STOP -> stopRecording()
-            ACTION_TARE -> hub?.let { h ->
-                lifecycleScope.launch {
-                    _state.value = _state.value.copy(taring = true)
-                    h.tare(TARE_MS)
-                    _state.value = _state.value.copy(taring = false)
-                }
-            }
-
             else -> stopSelf()
         }
         return START_NOT_STICKY

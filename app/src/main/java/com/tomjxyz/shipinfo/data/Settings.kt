@@ -3,6 +3,7 @@ package com.tomjxyz.shipinfo.data
 import android.content.Context
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -11,6 +12,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.tomjxyz.shipinfo.core.Channel
 import com.tomjxyz.shipinfo.core.PhoneOrientation
 import com.tomjxyz.shipinfo.core.SampleColumns
+import com.tomjxyz.shipinfo.core.Vec3
+import com.tomjxyz.shipinfo.sensors.LevelState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -41,6 +44,10 @@ class SettingsRepository(private val context: Context) {
         val rollWindow = intPreferencesKey("roll_window_min")
         val rollAutoStop = intPreferencesKey("roll_auto_stop_h")
         val rollGps = booleanPreferencesKey("roll_include_gps")
+        val levelX = doublePreferencesKey("level_x")
+        val levelY = doublePreferencesKey("level_y")
+        val levelZ = doublePreferencesKey("level_z")
+        val levelSetAt = longPreferencesKey("level_set_at")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { it.toSettings() }
@@ -72,6 +79,30 @@ class SettingsRepository(private val context: Context) {
     suspend fun setAutoPin(intervalHours: Int, anchorMinutes: Int?) = context.dataStore.edit {
         it[Keys.pinInterval] = intervalHours
         it[Keys.pinAnchor] = anchorMinutes ?: -1
+    }
+
+    /** The saved "Set level" reference, or the default (table assumed level). */
+    suspend fun level(): LevelState {
+        val p = context.dataStore.data.first()
+        val x = p[Keys.levelX]
+        val y = p[Keys.levelY]
+        val z = p[Keys.levelZ]
+        return if (x != null && y != null && z != null) LevelState(Vec3(x, y, z), p[Keys.levelSetAt]) else LevelState()
+    }
+
+    suspend fun setLevel(level: LevelState) = context.dataStore.edit {
+        val up = level.up
+        if (up == null) {
+            it.remove(Keys.levelX)
+            it.remove(Keys.levelY)
+            it.remove(Keys.levelZ)
+            it.remove(Keys.levelSetAt)
+        } else {
+            it[Keys.levelX] = up.x
+            it[Keys.levelY] = up.y
+            it[Keys.levelZ] = up.z
+            level.setAtMs?.let { t -> it[Keys.levelSetAt] = t }
+        }
     }
 
     suspend fun setRollWindow(min: Int) = context.dataStore.edit { it[Keys.rollWindow] = min }

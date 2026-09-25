@@ -57,6 +57,7 @@ import com.tomjxyz.shipinfo.ui.Perms
 import com.tomjxyz.shipinfo.ui.components.ChartSeries
 import com.tomjxyz.shipinfo.ui.components.CompassRose
 import com.tomjxyz.shipinfo.ui.components.Inclinometer
+import com.tomjxyz.shipinfo.ui.components.LevelControls
 import com.tomjxyz.shipinfo.ui.components.LineChart
 import com.tomjxyz.shipinfo.ui.components.SectionCard
 import com.tomjxyz.shipinfo.ui.fmt
@@ -78,7 +79,6 @@ class LiveViewModel(application: Application) : AndroidViewModel(application) {
 
     private var preview: SensorHub? = null
     val previewReadings = MutableStateFlow(LiveReadings())
-    val previewTaring = MutableStateFlow(false)
     private var previewJob: kotlinx.coroutines.Job? = null
 
     /** Runs the sensors while the screen is visible and nothing is being recorded. */
@@ -101,19 +101,6 @@ class LiveViewModel(application: Application) : AndroidViewModel(application) {
     fun setChannel(c: Channel, on: Boolean) = viewModelScope.launch { settingsRepo.setChannel(c, on) }
     fun setInterval(ms: Long) = viewModelScope.launch { settingsRepo.setSampleInterval(ms) }
     fun setOrientation(o: PhoneOrientation) = viewModelScope.launch { settingsRepo.setOrientation(o) }
-
-    fun setLevel() {
-        if (recording.value.recording) {
-            RecordingService.tare(getApplication())
-        } else {
-            val hub = preview ?: return
-            viewModelScope.launch {
-                previewTaring.value = true
-                hub.tare(RecordingService.TARE_MS)
-                previewTaring.value = false
-            }
-        }
-    }
 
     fun start() {
         stopPreview()
@@ -138,7 +125,6 @@ fun LiveScreen(vm: LiveViewModel = viewModel()) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val rec by vm.recording.collectAsStateWithLifecycle()
     val preview by vm.previewReadings.collectAsStateWithLifecycle()
-    val previewTaring by vm.previewTaring.collectAsStateWithLifecycle()
 
     val requestPerms = rememberPermissionRequest { vm.startPreview(settings.orientation) }
     LaunchedEffect(Unit) {
@@ -153,7 +139,6 @@ fun LiveScreen(vm: LiveViewModel = viewModel()) {
 
     val channels = if (rec.recording) rec.channels else settings.channels
     val r = if (rec.recording) rec.readings else preview
-    val taring = if (rec.recording) rec.taring else previewTaring
 
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(rec.recording) {
@@ -244,10 +229,8 @@ fun LiveScreen(vm: LiveViewModel = viewModel()) {
                 r = r,
                 maxPort = if (rec.recording) rec.maxRollPortDeg else null,
                 maxStbd = if (rec.recording) rec.maxRollStbdDeg else null,
-                taring = taring,
                 orientation = settings.orientation,
                 recording = rec.recording,
-                onLevel = vm::setLevel,
                 onOrientation = vm::setOrientation,
             )
         }
@@ -324,10 +307,8 @@ private fun RollCard(
     r: LiveReadings,
     maxPort: Double?,
     maxStbd: Double?,
-    taring: Boolean,
     orientation: PhoneOrientation,
     recording: Boolean,
-    onLevel: () -> Unit,
     onOrientation: (PhoneOrientation) -> Unit,
 ) {
     SectionCard(title = "Roll & pitch") {
@@ -344,25 +325,16 @@ private fun RollCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Dropdown(
-                label = "Phone placement",
-                options = PhoneOrientation.entries,
-                selected = orientation,
-                optionLabel = { it.label },
-                onSelect = onOrientation,
-                enabled = !recording,
-                modifier = Modifier.weight(1f),
-            )
-            OutlinedButton(onClick = onLevel, enabled = !taring) {
-                Text(if (taring) "Levelling…" else "Set level")
-            }
-        }
-        Text(
-            "Lay the phone flat, then press Set level while the ship is upright to zero out the table's tilt.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Dropdown(
+            label = "Phone placement",
+            options = PhoneOrientation.entries,
+            selected = orientation,
+            optionLabel = { it.label },
+            onSelect = onOrientation,
+            enabled = !recording,
+            modifier = Modifier.fillMaxWidth(),
         )
+        LevelControls(orientation)
     }
 }
 
