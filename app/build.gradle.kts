@@ -17,11 +17,24 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        // One fixed key for every build, so a new APK installs as an update over the old one.
+        // CI runners would otherwise generate a fresh debug key per run.
+        create("shipinfo") {
+            storeFile = file("shipinfo.keystore")
+            storePassword = "shipinfo"
+            keyAlias = "shipinfo"
+            keyPassword = "shipinfo"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("shipinfo")
+        }
         release {
             isMinifyEnabled = false
-            // Signed with the debug key so the release APK can be sideloaded directly.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("shipinfo")
         }
     }
 
